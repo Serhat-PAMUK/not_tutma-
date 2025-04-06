@@ -1,16 +1,38 @@
-<<<<<<< HEAD
-# React + Vite
+# 📝 Not Tutma Uygulaması
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, kişisel ve paylaşımlı notları yönetmek için geliştirilen bir React tabanlı not tutma uygulamasıdır.  
+Kullanıcı dostu arayüzü ve anı defteri paylaşımı gibi özellikleri ile dikkat çeker.
 
-Currently, two official plugins are available:
+## 🚀 Özellikler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✅ **Kullanıcı Girişi ve Kimlik Doğrulama**  
+  Kullanıcılar e-posta ve şifre ile giriş yapabilir. Şifremi Unuttum özelliği mevcuttur.
 
-## Expanding the ESLint configuration
+- 📝 **Not Oluşturma ve Düzenleme**  
+  Her kullanıcı kendi notlarını oluşturabilir, güncelleyebilir veya silebilir.
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
-# not_tutma-
->>>>>>> 69b380309281fe8c9729c7c417019413439372ce
+- 📅 **Görev Takibi ve Etkinlik Sayfası**  
+  Kullanıcılar görevlerini ekleyebilir, etkinlikleri planlayabilir.
+
+- 📖 **Anı Kitabı (Ortak Notlar)**  
+  Sadece davet edilen kullanıcıların katkı yapabildiği paylaşımlı bir anı defteri bölümü vardır.
+
+- 🔒 **Korumalı Rotalar (Protected Routes)**  
+  Yetkisiz kullanıcılar belirli sayfalara erişemez.
+
+- 🌐 **Context API ile Global State Yönetimi**  
+  Kullanıcı, not ve görev verileri merkezi olarak yönetilir.
+
+## 🛠️ Kullanılan Teknolojiler
+
+- **React** (Vite ile yapılandırılmış)
+- **JavaScript / TypeScript**
+- **React Router**
+- **Context API**
+- **Git & GitHub**
+
+## 📂 Projeyi Çalıştırmak
+
+```bash
+npm install
+npm run dev
