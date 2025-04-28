@@ -1,60 +1,70 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getNotes, createNote, updateNote, deleteNote } from '../utils/supabaseClient';
+import { useAuth } from './AuthContext';
 
-const NoteContext = createContext(null);
+const NoteContext = createContext();
 
 export const NoteProvider = ({ children }) => {
-  const [notes, setNotes] = useState(() => {
-    const savedNotes = localStorage.getItem('notes');
-    return savedNotes ? JSON.parse(savedNotes) : [];
-  });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Notları localStorage'a kaydet
   useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
-  // Not ekleme
-  const addNote = useCallback((note) => {
-    setNotes(prevNotes => [{
-      ...note,
-      id: Date.now(),
-      date: new Date().toISOString(),
-    }, ...prevNotes]);
-  }, []);
+  const fetchNotes = async () => {
+    try {
+      const { data, error } = await getNotes(user.id);
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (error) {
+      console.error('Notları getirme hatası:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Not silme
-  const deleteNote = useCallback((noteId) => {
-    setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
-  }, []);
+  const addNote = async (note) => {
+    try {
+      const { data, error } = await createNote({
+        ...note,
+        user_id: user.id
+      });
+      if (error) throw error;
+      setNotes([...notes, data[0]]);
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
 
-  // Not güncelleme
-  const updateNote = useCallback((noteId, updatedContent) => {
-    setNotes(prevNotes =>
-      prevNotes.map(note =>
-        note.id === noteId
-          ? { ...note, ...updatedContent, lastModified: new Date().toISOString() }
-          : note
-      )
-    );
-  }, []);
+  const editNote = async (id, updates) => {
+    try {
+      const { data, error } = await updateNote(id, updates);
+      if (error) throw error;
+      setNotes(notes.map(note => note.id === id ? data[0] : note));
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  };
 
-  // Sidebar durumunu değiştirme
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
-  }, []);
+  const removeNote = async (id) => {
+    try {
+      const { error } = await deleteNote(id);
+      if (error) throw error;
+      setNotes(notes.filter(note => note.id !== id));
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
 
   return (
-    <NoteContext.Provider
-      value={{
-        notes,
-        isSidebarOpen,
-        addNote,
-        deleteNote,
-        updateNote,
-        toggleSidebar,
-      }}
-    >
+    <NoteContext.Provider value={{ notes, loading, addNote, editNote, removeNote }}>
       {children}
     </NoteContext.Provider>
   );

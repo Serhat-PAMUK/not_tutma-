@@ -145,12 +145,30 @@ const SharedNotebookPage = () => {
     }
   }, [id, notebooks, setActiveNotebook, navigate]);
 
-  const handleCreateNotebook = () => {
-    if (newNotebookTitle.trim()) {
-      const notebook = createNotebook(newNotebookTitle, user.email);
+  const handleCreateNotebook = async () => {
+    if (!newNotebookTitle.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Lütfen bir başlık girin',
+        severity: 'error',
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await createNotebook(newNotebookTitle);
+      if (error) throw error;
+
       setNewNotebookDialog(false);
       setNewNotebookTitle('');
-      navigate(`/shared-notebook/${notebook.id}`);
+      navigate(`/shared-notebook/${data.id}`);
+    } catch (error) {
+      console.error('Not defteri oluşturma hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Not defteri oluşturulurken bir hata oluştu',
+        severity: 'error',
+      });
     }
   };
 
@@ -590,21 +608,33 @@ const SharedNotebookPage = () => {
       </Box>
 
       {/* Yeni Not Defteri Dialog */}
-      <Dialog open={newNotebookDialog} onClose={() => setNewNotebookDialog(false)}>
+      <Dialog
+        open={newNotebookDialog}
+        onClose={() => setNewNotebookDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Yeni Not Defteri Oluştur</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             label="Not Defteri Başlığı"
+            type="text"
             fullWidth
             value={newNotebookTitle}
             onChange={(e) => setNewNotebookTitle(e.target.value)}
+            variant="outlined"
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setNewNotebookDialog(false)}>İptal</Button>
-          <Button onClick={handleCreateNotebook} variant="contained">
+          <Button
+            onClick={handleCreateNotebook}
+            variant="contained"
+            color="primary"
+            disabled={!newNotebookTitle.trim()}
+          >
             Oluştur
           </Button>
         </DialogActions>

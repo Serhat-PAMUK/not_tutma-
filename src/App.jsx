@@ -1,4 +1,4 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -16,11 +16,18 @@ import SharedNotebookPage from './pages/SharedNotebookPage';
 import EventsPage from './pages/EventsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import NoteDetail from './pages/NoteDetail';
+import './index.css';
 
 export const ThemeContext = createContext();
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Sayfa yüklendiğinde loading durumunu kaldır
+    setIsLoading(false);
+  }, []);
 
   const theme = createTheme({
     palette: {
@@ -46,6 +53,10 @@ function App() {
       },
     },
   });
+
+  if (isLoading) {
+    return null; // veya bir loading spinner
+  }
 
   return (
     <ThemeContext.Provider value={{ darkMode, setDarkMode }}>

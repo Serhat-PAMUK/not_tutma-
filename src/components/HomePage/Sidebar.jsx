@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotes } from '../../context/NoteContext';
-import { ThemeContext } from '../../App';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 import {
   Box,
   Drawer,
@@ -40,11 +41,34 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { notes, deleteNote } = useNotes();
-  const { darkMode, setDarkMode } = useContext(ThemeContext);
+  const { user, logout } = useAuth();
+  const [userProfile, setUserProfile] = useState(null);
   const [open, setOpen] = useState(true);
   const [showRecentNotes, setShowRecentNotes] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Kullanıcı profili getirme hatası:', error);
+    }
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -52,6 +76,15 @@ const Sidebar = () => {
 
   const handleDarkModeToggle = () => {
     setDarkMode(!darkMode);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Çıkış hatası:', error);
+    }
   };
 
   const filteredNotes = notes.filter(note =>
@@ -92,10 +125,10 @@ const Sidebar = () => {
           </Avatar>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              Kullanıcı Adı
+              {userProfile?.full_name || 'Kullanıcı'}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              kullanici@email.com
+              {user?.email || 'kullanici@email.com'}
             </Typography>
           </Box>
         </Box>
@@ -225,6 +258,12 @@ const Sidebar = () => {
           onChange={handleDarkModeToggle}
           color="primary"
         />
+      </ListItem>
+
+      <ListItem>
+        <ListItemButton onClick={handleLogout}>
+          <ListItemText primary="Çıkış Yap" />
+        </ListItemButton>
       </ListItem>
     </Box>
   );

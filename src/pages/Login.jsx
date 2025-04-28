@@ -1,100 +1,86 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Box,
-  Button,
-  TextField,
-  Typography,
-  Container,
-  CircularProgress,
-  Alert,
   Paper,
+  Typography,
+  TextField,
+  Button,
+  Link as MuiLink,
+  Alert,
+  CircularProgress,
+  Container,
 } from '@mui/material';
 import logo from '../assets/logo.png';
-import { loginApi } from '../utils/mockApi';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const { login, isAuthenticated, loading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const validateForm = () => {
-    if (!formData.email || !formData.password) {
-      setError('Lütfen tüm alanları doldurun.');
-      return false;
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/homepage';
+      navigate(from, { replace: true });
     }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Geçerli bir e-posta adresi girin.');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.');
-      return false;
-    }
-    return true;
-  };
+  }, [isAuthenticated, navigate, location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-
-    if (!validateForm()) return;
+    setIsLoading(true);
 
     try {
-      const userData = await loginApi(formData.email, formData.password);
-      login(userData);
-      navigate('/homepage');
-    } catch (err) {
-      setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+      const { data, error } = await login(email, password);
+      if (error) throw error;
+    } catch (error) {
+      console.error('Giriş hatası:', error);
+      setError(error.message || 'Giriş yapılırken bir hata oluştu');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  return (
-    <Box
-      sx={{
-        width: '100vw',
-        height: '100vh',
-        margin: 0,
-        padding: 0,
-        backgroundColor: '#1976d2',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        overflow: 'hidden'
-      }}
-    >
-      <Container 
-        component="main" 
-        maxWidth="xs"
+  if (loading) {
+    return (
+      <Box
         sx={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100%'
+          height: '100vh',
         }}
       >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(45deg, #1976d2 30%, #21CBF3 90%)',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="sm">
         <Paper
-          elevation={6}
+          elevation={3}
           sx={{
             p: 4,
-            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            backgroundColor: 'white',
-            borderRadius: 2,
+            bgcolor: 'background.paper',
           }}
         >
           <Box
@@ -108,55 +94,58 @@ const Login = () => {
               objectFit: 'contain',
             }}
           />
-          <Typography component="h1" variant="h4" gutterBottom>
+          <Typography variant="h4" component="h1" gutterBottom align="center">
             Giriş Yap
           </Typography>
+
           {error && (
             <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
               {error}
             </Alert>
           )}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <TextField
+              fullWidth
+              label="E-posta"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               margin="normal"
               required
-              fullWidth
-              id="email"
-              label="E-posta Adresi"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
             />
             <TextField
-              margin="normal"
-              required
               fullWidth
-              name="password"
               label="Şifre"
               type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin="normal"
+              required
+              disabled={isLoading}
             />
             <Button
-              type="submit"
               fullWidth
+              type="submit"
               variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={loading}
+              color="primary"
+              size="large"
+              disabled={isLoading}
+              sx={{ mt: 2 }}
             >
-              {loading ? <CircularProgress size={24} /> : 'Giriş Yap'}
+              {isLoading ? <CircularProgress size={24} /> : 'Giriş Yap'}
             </Button>
-            <Box sx={{ textAlign: 'center' }}>
-              <Link
-                to="/forgot-password"
-                style={{ textDecoration: 'none', color: '#1976d2' }}
-              >
-                Şifremi Unuttum
-              </Link>
+          </form>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <MuiLink component={Link} to="/forgot-password" variant="body2">
+              Şifremi Unuttum
+            </MuiLink>
+            <Box sx={{ mt: 1 }}>
+              <MuiLink component={Link} to="/register" variant="body2">
+                Hesabınız yok mu? Kayıt olun
+              </MuiLink>
             </Box>
           </Box>
         </Paper>

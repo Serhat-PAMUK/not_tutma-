@@ -1,64 +1,51 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   Box,
-  Button,
-  TextField,
-  Typography,
-  Container,
-  CircularProgress,
-  Alert,
   Paper,
-  Link,
+  Typography,
+  TextField,
+  Button,
+  Link as MuiLink,
+  Alert,
+  CircularProgress,
+  Container,
 } from '@mui/material';
 import logo from '../assets/logo.png';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      setError('Lütfen tüm alanları doldurun.');
-      return false;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Geçerli bir e-posta adresi girin.');
-      return false;
-    }
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.');
-      return false;
-    }
-    if (password !== confirmPassword) {
-      setError('Şifreler eşleşmiyor.');
-      return false;
-    }
-    return true;
-  };
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess(false);
 
-    if (!validateForm()) return;
+    if (password !== confirmPassword) {
+      setError('Şifreler eşleşmiyor');
+      return;
+    }
+
+    if (!fullName.trim()) {
+      setError('Lütfen kullanıcı adınızı girin');
+      return;
+    }
 
     setLoading(true);
+
     try {
-      // Burada normalde API çağrısı yapılacak
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simüle edilmiş gecikme
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (err) {
-      setError('Kayıt işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      const { data, error } = await register(email, password, fullName);
+      if (error) throw error;
+      navigate('/homepage');
+    } catch (error) {
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -67,133 +54,103 @@ const Register = () => {
   return (
     <Box
       sx={{
-        width: '100vw',
-        height: '100vh',
-        margin: 0,
-        padding: 0,
-        backgroundColor: '#1976d2',
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        overflow: 'hidden'
+        background: 'linear-gradient(45deg, #1976d2 30%, #21CBF3 90%)',
+        py: 4,
       }}
     >
-      <Container 
-        component="main" 
-        maxWidth="xs"
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%'
-        }}
-      >
+      <Container maxWidth="sm">
         <Paper
-          elevation={6}
+          elevation={3}
           sx={{
             p: 4,
-            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            backgroundColor: 'white',
-            borderRadius: 2,
+            bgcolor: 'background.paper',
           }}
         >
           <Box
+            component="img"
+            src={logo}
+            alt="Logo"
             sx={{
+              width: 120,
+              height: 120,
               mb: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
+              objectFit: 'contain',
             }}
-          >
-            <img
-              src={logo}
-              alt="Logo"
-              style={{
-                width: '120px',
-                height: 'auto',
-                marginBottom: '20px'
-              }}
-            />
-            <Typography component="h1" variant="h4" gutterBottom>
-              Kayıt Ol
-            </Typography>
-          </Box>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...
-              </Alert>
-            )}
+          />
+          <Typography variant="h4" component="h1" gutterBottom align="center">
+            Kayıt Ol
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <TextField
+              fullWidth
+              label="Kullanıcı Adı"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               margin="normal"
               required
+              disabled={loading}
+            />
+            <TextField
               fullWidth
-              id="email"
-              label="E-posta Adresi"
-              name="email"
-              autoComplete="email"
-              autoFocus
+              label="E-posta"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
               margin="normal"
               required
+              disabled={loading}
+            />
+            <TextField
               fullWidth
-              name="password"
               label="Şifre"
               type="password"
-              id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-            />
-            <TextField
               margin="normal"
               required
+              disabled={loading}
+            />
+            <TextField
               fullWidth
-              name="confirmPassword"
               label="Şifre Tekrar"
               type="password"
-              id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              margin="normal"
+              required
+              disabled={loading}
             />
             <Button
-              type="submit"
               fullWidth
+              type="submit"
               variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
+              color="primary"
+              size="large"
               disabled={loading}
+              sx={{ mt: 2 }}
             >
               {loading ? <CircularProgress size={24} /> : 'Kayıt Ol'}
             </Button>
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Zaten hesabınız var mı?{' '}
-                <Link
-                  href="#"
-                  variant="body2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate('/login');
-                  }}
-                  sx={{ cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Giriş Yap
-                </Link>
-              </Typography>
-            </Box>
+          </form>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <MuiLink component={Link} to="/login" variant="body2">
+              Zaten hesabınız var mı? Giriş yapın
+            </MuiLink>
           </Box>
         </Paper>
       </Container>
