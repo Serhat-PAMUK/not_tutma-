@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import {
   Box,
   Button,
@@ -11,10 +12,11 @@ import {
   Paper,
   Link,
 } from '@mui/material';
-import logo from '../assets/logo.png';
+import logo from './assets/logo.png';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,43 +24,29 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      setError('Lütfen tüm alanları doldurun.');
-      return false;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Geçerli bir e-posta adresi girin.');
-      return false;
-    }
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.');
-      return false;
-    }
-    if (password !== confirmPassword) {
-      setError('Şifreler eşleşmiyor.');
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
 
-    if (!validateForm()) return;
+    if (password !== confirmPassword) {
+      setError('Şifreler eşleşmiyor.');
+      return;
+    }
 
     setLoading(true);
     try {
-      // Burada normalde API çağrısı yapılacak
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simüle edilmiş gecikme
+      const { user, error } = await register(email, password);
+
+      if (error) throw error;
+
       setSuccess(true);
+      setError('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (err) {
-      setError('Kayıt işlemi sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      setError(err.message || 'Kayıt işlemi sırasında bir hata oluştu.');
     } finally {
       setLoading(false);
     }

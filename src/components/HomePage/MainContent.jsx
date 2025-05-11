@@ -37,7 +37,7 @@ const MainContent = () => {
         note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         note.content.toLowerCase().includes(searchQuery.toLowerCase())
       )
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [notes, searchQuery]);
 
   // Not silme işleyicisi
@@ -188,7 +188,7 @@ const MainContent = () => {
                       {note.content}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(note.date).toLocaleDateString('tr-TR', {
+                      {new Date(note.created_at).toLocaleDateString('tr-TR', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

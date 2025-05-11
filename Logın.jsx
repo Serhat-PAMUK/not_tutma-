@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import {
   Box,
   Button,
@@ -11,12 +11,11 @@ import {
   Alert,
   Paper,
 } from '@mui/material';
-import logo from '../assets/logo.png';
-import { loginApi } from '../utils/mockApi';
+import logo from './assets/logo.png';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -24,35 +23,33 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const validateForm = () => {
-    if (!formData.email || !formData.password) {
-      setError('Lütfen tüm alanları doldurun.');
-      return false;
+  // Kullanıcı oturumu varsa ana sayfaya yönlendir
+  useEffect(() => {
+    if (user) {
+      navigate('/homepage');
     }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Geçerli bir e-posta adresi girin.');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      setError('Şifre en az 6 karakter olmalıdır.');
-      return false;
-    }
-    return true;
-  };
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!validateForm()) return;
-
     try {
-      const userData = await loginApi(formData.email, formData.password);
-      login(userData);
-      navigate('/homepage');
+      const { user, error } = await login(formData.email, formData.password);
+      
+      if (error) {
+        console.error('Giriş hatası:', error);
+        throw error;
+      }
+
+      if (user) {
+        console.log('Kullanıcı girişi başarılı');
+        // Yönlendirme useEffect ile yapılacak
+      }
     } catch (err) {
-      setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+      console.error('Giriş işlemi hatası:', err);
+      setError('Giriş başarısız. Lütfen e-posta ve şifrenizi kontrol edin.');
     } finally {
       setLoading(false);
     }

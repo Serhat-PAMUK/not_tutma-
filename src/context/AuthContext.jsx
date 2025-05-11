@@ -1,36 +1,31 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, signIn, signUp, signOut, getCurrentUser } from '../utils/supabaseClient';
+import { supabase } from '../utils/supabaseClient';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState(null);
 
   useEffect(() => {
     // Mevcut oturumu kontrol et
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        setSession(session);
+        const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
       } catch (error) {
         console.error('Oturum kontrolü hatası:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
-
+    
     checkSession();
 
     // Auth state değişikliklerini dinle
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state değişti:', event, session);
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -38,57 +33,60 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data, error } = await signIn(email, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (error) throw error;
-      
-      // Oturum bilgilerini kontrol et
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      return { data, error: null };
+
+      // Kullanıcı bilgilerini localStorage'a kaydet
+      if (data?.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+      }
+
+      return { user: data?.user, error: null };
     } catch (error) {
-      console.error('Giriş hatası:', error);
-      return { data: null, error };
+      console.error('Login hatası:', error);
+      return { user: null, error };
     }
   };
 
   const register = async (email, password) => {
     try {
-      const { data, error } = await signUp(email, password);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
       if (error) throw error;
-      return { data, error: null };
+      return { user: data?.user, error: null };
     } catch (error) {
-      console.error('Kayıt hatası:', error);
-      return { data: null, error };
+      return { user: null, error };
     }
   };
 
   const logout = async () => {
     try {
-      const { error } = await signOut();
+      const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setSession(null);
+      localStorage.removeItem('user');
       setUser(null);
+      return { error: null };
     } catch (error) {
-      console.error('Çıkış hatası:', error);
+      return { error };
     }
   };
 
-  const value = {
-    user,
-    session,
-    loading,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!session
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      loading,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

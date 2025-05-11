@@ -68,7 +68,7 @@ const NoteDetail = () => {
           </Typography>
           <Divider sx={{ my: 2 }} />
           <Typography variant="caption" color="text.secondary">
-            Son güncelleme: {new Date(note.date).toLocaleString('tr-TR')}
+            Son güncelleme: {new Date(note.created_at).toLocaleString('tr-TR')}
           </Typography>
         </Paper>
       </Box>

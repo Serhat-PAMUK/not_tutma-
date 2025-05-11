@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   Box,
   Paper,
@@ -17,6 +18,8 @@ import {
   Button,
   Chip,
   Divider,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import {
   Event as EventIcon,
@@ -24,62 +27,134 @@ import {
   Delete as DeleteIcon,
   CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
+import { supabase } from '../utils/supabaseClient';
 
 const EventsPage = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [openDialog, setOpenDialog] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
-    date: new Date(),
+    startDate: new Date().toISOString().slice(0, 16),
+    endDate: new Date().toISOString().slice(0, 16),
+    location: '',
   });
+  const [error, setError] = useState(null);
 
-  // LocalStorage'dan etkinlikleri yükle
+  // Etkinlikleri al
   useEffect(() => {
-    const savedEvents = localStorage.getItem('events');
-    if (savedEvents) {
-      setEvents(JSON.parse(savedEvents));
+    const fetchEvents = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('start_date', { ascending: true });
+
+        if (error) {
+          console.error('Etkinlikleri alırken hata:', error);
+          setError('Etkinlikler yüklenirken bir hata oluştu');
+        } else {
+          setEvents(data);
+        }
+      }
+    };
+    fetchEvents();
+  }, [user]);
+
+  // Etkinlik ekleme işlemi
+  const handleAddEvent = async () => {
+    if (!user) {
+      setError('Kullanıcı oturumu bulunamadı');
+      return;
     }
-  }, []);
-
-  // Etkinlikleri LocalStorage'a kaydet
-  useEffect(() => {
-    localStorage.setItem('events', JSON.stringify(events));
-  }, [events]);
-
-  const handleAddEvent = () => {
-    if (newEvent.title.trim()) {
-      setEvents([
-        ...events,
-        {
-          ...newEvent,
-          id: Date.now(),
-        },
-      ]);
-      setOpenDialog(false);
-      setNewEvent({
-        title: '',
-        description: '',
-        date: new Date(),
-      });
+  
+    if (
+      !newEvent.title.trim() ||
+      !newEvent.description.trim() ||
+      !newEvent.location.trim()
+    ) {
+      setError('Lütfen tüm alanları doldurun');
+      return;
+    }
+  
+    try {
+      // Tarih kontrolü
+      const startDate = new Date(newEvent.startDate);
+      const endDate = new Date(newEvent.endDate);
+  
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        setError('Geçersiz tarih formatı');
+        return;
+      }
+  
+      if (endDate < startDate) {
+        setError('Bitiş tarihi başlangıç tarihinden önce olamaz');
+        return;
+      }
+  
+      const { data, error } = await supabase
+        .from('events')
+        .insert([
+          {
+            user_id: user.id,
+            title: newEvent.title.trim(),
+            description: newEvent.description.trim(),
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            location: newEvent.location.trim(),
+          },
+        ])
+        .select(); // inserted veriyi döndürmek için bu şart
+  
+      if (error) {
+        console.error('Etkinlik eklenirken hata oluştu:', error);
+        setError('Etkinlik eklenirken bir hata oluştu: ' + error.message);
+      } else if (data && data.length > 0) {
+        console.log('Etkinlik başarıyla eklendi:', data[0]);
+        setEvents([...events, data[0]]);
+        setOpenDialog(false);
+        setNewEvent({
+          title: '',
+          description: '',
+          startDate: new Date().toISOString().slice(0, 16),
+          endDate: new Date().toISOString().slice(0, 16),
+          location: '',
+        });
+      } else {
+        console.warn('Etkinlik başarıyla eklendi ama dönen veri yok.');
+      }
+    } catch (error) {
+      console.error('Veritabanına bağlanırken bir hata oluştu:', error);
+      setError('Veritabanına bağlanırken bir hata oluştu');
     }
   };
+  
+  // Etkinlik silme işlemi
+  const handleDeleteEvent = async (eventId) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
 
-  const handleDeleteEvent = (eventId) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+      if (error) {
+        console.error('Etkinlik silerken hata:', error);
+        setError('Etkinlik silinirken bir hata oluştu');
+      } else {
+        setEvents(events.filter((event) => event.id !== eventId));
+      }
+    } catch (error) {
+      console.error('Etkinlik silme hatası:', error);
+      setError('Etkinlik silinirken bir hata oluştu');
+    }
   };
-
-  // Yaklaşan etkinlikleri sırala
-  const upcomingEvents = [...events]
-    .filter((event) => new Date(event.date) >= new Date())
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5);
 
   // Seçili tarihteki etkinlikleri filtrele
   const selectedDateEvents = events.filter(
-    (event) =>
-      new Date(event.date).toDateString() === selectedDate.toDateString()
+    (event) => new Date(event.start_date).toDateString() === selectedDate.toDateString()
   );
 
   return (
@@ -92,24 +167,13 @@ const EventsPage = () => {
               <CalendarIcon sx={{ mr: 1, color: '#1976d2' }} />
               <Typography variant="h6">Takvim</Typography>
             </Box>
-            
+
             <TextField
               type="date"
               value={selectedDate.toISOString().split('T')[0]}
               onChange={(e) => setSelectedDate(new Date(e.target.value))}
               fullWidth
-              sx={{ 
-                mb: 2,
-                '& input': {
-                  fontSize: '1.1rem',
-                  padding: '12px',
-                },
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: '#1976d2',
-                  },
-                },
-              }}
+              sx={{ mb: 2 }}
             />
 
             {/* Seçili Tarihteki Etkinlikler */}
@@ -165,34 +229,36 @@ const EventsPage = () => {
               <Typography variant="h6">Yaklaşan Etkinlikler</Typography>
             </Box>
             <List>
-              {upcomingEvents.map((event) => (
-                <ListItem
-                  key={event.id}
-                  sx={{
-                    mb: 1,
-                    borderRadius: 1,
-                    '&:hover': {
-                      backgroundColor: '#f5f5f5',
-                    },
-                  }}
-                >
-                  <ListItemIcon>
-                    <CalendarIcon color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={event.title}
-                    secondary={new Date(event.date).toLocaleDateString('tr-TR')}
-                  />
-                  <IconButton
-                    edge="end"
-                    size="small"
-                    onClick={() => handleDeleteEvent(event.id)}
-                    sx={{ color: '#d32f2f' }}
+              {events
+                .filter((event) => new Date(event.start_date) >= new Date())
+                .map((event) => (
+                  <ListItem
+                    key={event.id}
+                    sx={{
+                      mb: 1,
+                      borderRadius: 1,
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5',
+                      },
+                    }}
                   >
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItem>
-              ))}
+                    <ListItemIcon>
+                      <CalendarIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={event.title}
+                      secondary={new Date(event.start_date).toLocaleDateString('tr-TR')}
+                    />
+                    <IconButton
+                      edge="end"
+                      size="small"
+                      onClick={() => handleDeleteEvent(event.id)}
+                      sx={{ color: '#d32f2f' }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItem>
+                ))}
             </List>
           </Paper>
         </Grid>
@@ -223,14 +289,32 @@ const EventsPage = () => {
           />
           <TextField
             margin="dense"
-            label="Tarih"
+            label="Başlangıç Tarihi"
             type="datetime-local"
             fullWidth
-            value={new Date(newEvent.date).toISOString().slice(0, 16)}
-            onChange={(e) => setNewEvent({ ...newEvent, date: new Date(e.target.value) })}
+            value={newEvent.startDate}
+            onChange={(e) => setNewEvent({ ...newEvent, startDate: e.target.value })}
             InputLabelProps={{
               shrink: true,
             }}
+          />
+          <TextField
+            margin="dense"
+            label="Bitiş Tarihi"
+            type="datetime-local"
+            fullWidth
+            value={newEvent.endDate}
+            onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Konum"
+            fullWidth
+            value={newEvent.location}
+            onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
           />
         </DialogContent>
         <DialogActions>
@@ -240,8 +324,20 @@ const EventsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Hata Mesajı */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default EventsPage; 
+export default EventsPage;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotes } from '../../context/NoteContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../utils/supabaseClient';
 import {
   Box,
@@ -33,6 +34,8 @@ import {
   Assignment,
   Group as GroupIcon,
   Event as EventIcon,
+  DarkMode,
+  LightMode,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -42,12 +45,12 @@ const Sidebar = () => {
   const location = useLocation();
   const { notes, deleteNote } = useNotes();
   const { user, logout } = useAuth();
+  const { darkMode, toggleDarkMode } = useTheme();
   const [userProfile, setUserProfile] = useState(null);
   const [open, setOpen] = useState(true);
   const [showRecentNotes, setShowRecentNotes] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -74,10 +77,6 @@ const Sidebar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleDarkModeToggle = () => {
-    setDarkMode(!darkMode);
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -99,6 +98,20 @@ const Sidebar = () => {
     { text: 'Etkinlikler', icon: <EventIcon />, path: '/events', color: '#9c27b0' },
     { text: 'Paylaşımlı Not Defteri', icon: <GroupIcon />, path: '/shared-notebook/new', color: '#673ab7' },
   ];
+
+  const darkModeListItem = (
+    <ListItem>
+      <ListItemIcon>
+        {darkMode ? <LightMode /> : <DarkMode />}
+      </ListItemIcon>
+      <ListItemText primary={darkMode ? "Açık Mod" : "Karanlık Mod"} />
+      <Switch
+        checked={darkMode}
+        onChange={toggleDarkMode}
+        color="primary"
+      />
+    </ListItem>
+  );
 
   const drawer = (
     <Box sx={{ overflow: 'auto' }}>
@@ -227,7 +240,7 @@ const Sidebar = () => {
                     {note.title}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" noWrap>
-                    {new Date(note.date).toLocaleDateString('tr-TR')}
+                    {new Date(note.created_at).toLocaleDateString('tr-TR')}
                   </Typography>
                 </Box>
                 <IconButton
@@ -247,24 +260,15 @@ const Sidebar = () => {
             ))}
           </List>
         </Collapse>
+
+        {darkModeListItem}
+
+        <ListItem>
+          <ListItemButton onClick={handleLogout}>
+            <ListItemText primary="Çıkış Yap" />
+          </ListItemButton>
+        </ListItem>
       </List>
-
-      <Divider sx={{ my: 2 }} />
-
-      <ListItem>
-        <ListItemText primary="Dark Mode" />
-        <Switch
-          checked={darkMode}
-          onChange={handleDarkModeToggle}
-          color="primary"
-        />
-      </ListItem>
-
-      <ListItem>
-        <ListItemButton onClick={handleLogout}>
-          <ListItemText primary="Çıkış Yap" />
-        </ListItemButton>
-      </ListItem>
     </Box>
   );
 

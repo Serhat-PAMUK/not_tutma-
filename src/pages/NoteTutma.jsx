@@ -11,6 +11,7 @@ import {
   Snackbar,
   Alert,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import { ChromePicker } from 'react-color';
 import {
@@ -35,6 +36,9 @@ const NoteTutma = () => {
   const [bgColor, setBgColor] = useState('#ffffff');
   const [textColor, setTextColor] = useState('#000000');
   const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('error');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleFormat = (command) => {
     document.execCommand(command, false, null);
@@ -52,22 +56,64 @@ const NoteTutma = () => {
     setShowTextColorPicker(false);
   };
 
-  const handleSave = () => {
-    if (!title.trim() || !content.trim()) {
+  const handleSave = async () => {
+    // Doğrulama kontrolü
+    if (!title.trim()) {
+      setAlertMessage('Lütfen bir başlık girin!');
+      setAlertSeverity('error');
       setShowAlert(true);
       return;
     }
 
-    addNote({
-      id: Date.now(),
-      title,
-      content,
-      date: new Date().toISOString(),
-      bgColor,
-      textColor,
-    });
+    if (!content.trim()) {
+      setAlertMessage('Lütfen bir içerik girin!');
+      setAlertSeverity('error');
+      setShowAlert(true);
+      return;
+    }
 
-    navigate('/homepage');
+    try {
+      setIsSaving(true);
+      
+      // Not verilerini hazırla
+      const noteData = {
+        title: title.trim(),
+        content: content.trim(),
+        bgColor,
+        textColor,
+      };
+
+      console.log('Not kaydediliyor:', noteData);
+      
+      // addNote fonksiyonunu çağır ve sonucu bekle
+      const result = await addNote(noteData);
+      
+      if (result.error) {
+        console.error('Not kaydetme hatası:', result.error);
+        setAlertMessage('Not kaydedilirken bir hata oluştu: ' + (result.error.message || 'Bilinmeyen hata'));
+        setAlertSeverity('error');
+        setShowAlert(true);
+        return;
+      }
+      
+      // Başarı mesajı göster
+      setAlertMessage('Not başarıyla kaydedildi!');
+      setAlertSeverity('success');
+      setShowAlert(true);
+      
+      // Kısa bir süre bekleyip ana sayfaya yönlendir
+      setTimeout(() => {
+        navigate('/homepage');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Not kaydetme işlemi sırasında bir hata oluştu:', error);
+      setAlertMessage('Not kaydedilirken bir hata oluştu!');
+      setAlertSeverity('error');
+      setShowAlert(true);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -88,8 +134,9 @@ const NoteTutma = () => {
           </Typography>
           <Button
             variant="contained"
-            startIcon={<Save />}
+            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <Save />}
             onClick={handleSave}
+            disabled={isSaving}
             sx={{
               bgcolor: '#0db548',
               '&:hover': {
@@ -97,7 +144,7 @@ const NoteTutma = () => {
               },
             }}
           >
-            Kaydet
+            {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
           </Button>
         </Toolbar>
 
@@ -208,9 +255,10 @@ const NoteTutma = () => {
         open={showAlert}
         autoHideDuration={3000}
         onClose={() => setShowAlert(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity="error" onClose={() => setShowAlert(false)}>
-          Başlık ve içerik alanları boş bırakılamaz!
+        <Alert severity={alertSeverity} onClose={() => setShowAlert(false)}>
+          {alertMessage}
         </Alert>
       </Snackbar>
     </Box>

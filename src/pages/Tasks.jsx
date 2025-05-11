@@ -42,6 +42,7 @@ const Tasks = () => {
         >
           <Typography 
             variant="h4" 
+            component="h1"
             sx={{ 
               fontWeight: 'bold',
               color: '#0db548',
@@ -76,4 +77,4 @@ const Tasks = () => {
   );
 };
 
-export default Tasks; 
+export default Tasks;

@@ -46,13 +46,8 @@ const getPriorityLabel = (priority) => {
 const TaskList = ({ onEditTask }) => {
   const { tasks, deleteTask, updateTask } = useTasks();
 
-  const handleDelete = (taskId) => {
-    deleteTask(taskId);
-  };
-
-  const handleComplete = (taskId) => {
-    updateTask(taskId, { completed: true });
-  };
+  const handleDelete = (taskId) => deleteTask(taskId);
+  const handleComplete = (taskId) => updateTask(taskId, { completed: true });
 
   const formatDate = (dueDate, customDate) => {
     if (customDate) return new Date(customDate).toLocaleDateString('tr-TR');
@@ -87,10 +82,9 @@ const TaskList = ({ onEditTask }) => {
             mb: 1,
             bgcolor: 'background.paper',
             borderRadius: 1,
-            '&:hover': {
-              bgcolor: 'action.hover',
-            },
+            '&:hover': { bgcolor: 'action.hover' },
           }}
+          divider
         >
           <ListItemText
             primary={
@@ -130,27 +124,13 @@ const TaskList = ({ onEditTask }) => {
             }
           />
           <ListItemSecondaryAction>
-            <IconButton
-              edge="end"
-              onClick={() => handleComplete(task.id)}
-              sx={{ mr: 1 }}
-            >
-              <CheckCircleIcon
-                color={task.completed ? 'success' : 'action'}
-              />
+            <IconButton edge="end" onClick={() => handleComplete(task.id)} sx={{ mr: 1 }}>
+              <CheckCircleIcon color={task.completed ? 'success' : 'action'} />
             </IconButton>
-            <IconButton
-              edge="end"
-              onClick={() => onEditTask(task)}
-              sx={{ mr: 1 }}
-            >
+            <IconButton edge="end" onClick={() => onEditTask(task)} sx={{ mr: 1 }}>
               <EditIcon />
             </IconButton>
-            <IconButton
-              edge="end"
-              onClick={() => handleDelete(task.id)}
-              sx={{ color: 'error.main' }}
-            >
+            <IconButton edge="end" onClick={() => handleDelete(task.id)} sx={{ color: 'error.main' }}>
               <DeleteIcon />
             </IconButton>
           </ListItemSecondaryAction>
@@ -160,4 +140,4 @@ const TaskList = ({ onEditTask }) => {
   );
 };
 
-export default TaskList; 
+export default TaskList;

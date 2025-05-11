@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -17,10 +17,11 @@ import {
 import { Close as CloseIcon } from '@mui/icons-material';
 import { useTasks } from '../../context/TaskContext';
 
-const TaskModal = ({ open, onClose }) => {
-  const { addTask } = useTasks();
+const TaskModal = ({ open, onClose, task: editingTask }) => {
+  const { addTask, updateTask } = useTasks();
+
   const [task, setTask] = useState({
-    name: '',
+    title: '',  // 'name' -> 'title'
     description: '',
     dueDate: 'today',
     customDate: '',
@@ -30,41 +31,49 @@ const TaskModal = ({ open, onClose }) => {
     priority: 'medium',
   });
 
+  useEffect(() => {
+    if (editingTask) {
+      setTask(editingTask);
+    } else {
+      setTask({
+        title: '',  // 'name' -> 'title'
+        description: '',
+        dueDate: 'today',
+        customDate: '',
+        reminder: '1hour',
+        customReminder: '',
+        assignedTo: '',
+        priority: 'medium',
+      });
+    }
+  }, [editingTask]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setTask(prev => ({ ...prev, [name]: value }));
+    setTask((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addTask(task);
+    if (editingTask) {
+      updateTask(editingTask.id, task);
+    } else {
+      addTask(task);
+    }
     onClose();
-    setTask({
-      name: '',
-      description: '',
-      dueDate: 'today',
-      customDate: '',
-      reminder: '1hour',
-      customReminder: '',
-      assignedTo: '',
-      priority: 'medium',
-    });
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         pb: 1
       }}>
-        <Typography variant="h6">Yeni Görev Oluştur</Typography>
+        <Typography variant="h6">
+          {editingTask ? 'Görevi Düzenle' : 'Yeni Görev Oluştur'}
+        </Typography>
         <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -74,9 +83,9 @@ const TaskModal = ({ open, onClose }) => {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Görev Adı"
-              name="name"
-              value={task.name}
+              label="Görev Adı"  // 'name' -> 'title'
+              name="title"  // 'name' -> 'title'
+              value={task.title}  // 'name' -> 'title'
               onChange={handleChange}
               required
               fullWidth
@@ -170,12 +179,8 @@ const TaskModal = ({ open, onClose }) => {
 
         <DialogActions sx={{ p: 2, pt: 0 }}>
           <Button onClick={onClose}>İptal</Button>
-          <Button 
-            variant="contained" 
-            type="submit"
-            disabled={!task.name}
-          >
-            Kaydet
+          <Button variant="contained" type="submit" disabled={!task.title}>  {/* 'name' -> 'title' */}
+            {editingTask ? 'Güncelle' : 'Kaydet'}
           </Button>
         </DialogActions>
       </form>
@@ -183,4 +188,4 @@ const TaskModal = ({ open, onClose }) => {
   );
 };
 
-export default TaskModal; 
+export default TaskModal;

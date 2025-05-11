@@ -36,14 +36,25 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await login(email, password);
-      if (error) throw error;
+      const { user, error } = await login(email, password);
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Başarıyla giriş yapıldı:', user);
+      const from = location.state?.from?.pathname || '/homepage';
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Giriş hatası:', error);
       setError(error.message || 'Giriş yapılırken bir hata oluştu');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    setEmail('test@example.com');
+    setPassword('123456');
   };
 
   if (loading) {
@@ -136,6 +147,19 @@ const Login = () => {
             >
               {isLoading ? <CircularProgress size={24} /> : 'Giriş Yap'}
             </Button>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                fullWidth
+                variant="outlined"
+                color="secondary"
+                size="large"
+                onClick={handleDemoLogin}
+                sx={{ mt: 1 }}
+              >
+                Test Kullanıcısı Bilgilerini Doldur
+              </Button>
+            )}
           </form>
 
           <Box sx={{ mt: 2, textAlign: 'center' }}>

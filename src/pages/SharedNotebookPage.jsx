@@ -32,6 +32,7 @@ import {
   InputLabel,
   MenuItem as MuiMenuItem,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import {
   ContentCopy as CopyIcon,
@@ -156,8 +157,22 @@ const SharedNotebookPage = () => {
     }
 
     try {
+      setLoading(true);
+      console.log('Not defteri oluşturuluyor:', newNotebookTitle);
+      
       const { data, error } = await createNotebook(newNotebookTitle);
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Not defteri oluşturma hatası:', error);
+        throw error;
+      }
+
+      console.log('Not defteri başarıyla oluşturuldu:', data);
+      setSnackbar({
+        open: true,
+        message: 'Not defteri başarıyla oluşturuldu',
+        severity: 'success',
+      });
 
       setNewNotebookDialog(false);
       setNewNotebookTitle('');
@@ -166,9 +181,11 @@ const SharedNotebookPage = () => {
       console.error('Not defteri oluşturma hatası:', error);
       setSnackbar({
         open: true,
-        message: 'Not defteri oluşturulurken bir hata oluştu',
+        message: `Not defteri oluşturulurken bir hata oluştu: ${error.message || 'Bilinmeyen hata'}`,
         severity: 'error',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -610,7 +627,7 @@ const SharedNotebookPage = () => {
       {/* Yeni Not Defteri Dialog */}
       <Dialog
         open={newNotebookDialog}
-        onClose={() => setNewNotebookDialog(false)}
+        onClose={() => !loading && setNewNotebookDialog(false)}
         maxWidth="sm"
         fullWidth
       >
@@ -625,17 +642,19 @@ const SharedNotebookPage = () => {
             value={newNotebookTitle}
             onChange={(e) => setNewNotebookTitle(e.target.value)}
             variant="outlined"
+            disabled={loading}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewNotebookDialog(false)}>İptal</Button>
+          <Button onClick={() => setNewNotebookDialog(false)} disabled={loading}>İptal</Button>
           <Button
             onClick={handleCreateNotebook}
             variant="contained"
             color="primary"
-            disabled={!newNotebookTitle.trim()}
+            disabled={!newNotebookTitle.trim() || loading}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            Oluştur
+            {loading ? 'Oluşturuluyor...' : 'Oluştur'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -40,7 +40,7 @@ const ScratchPad = React.memo(({ note, onDelete }) => {
             {note.content}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            {new Date(note.date).toLocaleString('tr-TR')}
+            {new Date(note.created_at).toLocaleString('tr-TR')}
           </Typography>
         </Box>
         {isHovered && (
